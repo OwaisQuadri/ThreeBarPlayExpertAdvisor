@@ -302,6 +302,7 @@ void OnTick()
 //trading format "trade(bool buy,int pipstostoploss));"
    if(ignition && correction && confirmation && bull && !traded)
      {
+     //buy after confirmation
       stoploss=height2+(2*spread);
       takeprofit=stoploss;
       trade(true,stoploss);
@@ -310,6 +311,7 @@ void OnTick()
    else
       if(ignition && correction && confirmation && bear && !traded)
         {
+        //sell after confirmation
          stoploss=height2+(2*spread);
          takeprofit=stoploss;
          trade(false,stoploss);
@@ -318,7 +320,8 @@ void OnTick()
       else
          if(!traded && ignition && bull && rejection)
            {
-            stoploss=(height2/2)+3*spread;
+           //buy after rejection
+            stoploss=height2;
             takeprofit=stoploss;
             trade(true,stoploss);
             traded=true;
@@ -326,8 +329,8 @@ void OnTick()
          else
             if(!traded && ignition && bear && rejection)
               {
-               stoploss=(height2/2)
-                        +3*spread;
+              //sell after rejection
+               stoploss=height2;
                takeprofit=stoploss;
                trade(false,stoploss);
                traded=true;
