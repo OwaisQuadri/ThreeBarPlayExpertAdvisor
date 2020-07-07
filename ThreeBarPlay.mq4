@@ -57,11 +57,11 @@ void trade(bool buy, int sl)
 
       Alert("Buy ",shares," shares of ", _Symbol);
       double x=Ask;
-      double y=shares*3/4;
-      double z=shares/4;
+      double y=shares*0.67;
+      double z=shares*0.33;
       int pipstostoploss=pips;
-      int takeprofit2= pips*2;
-      int takeprofit1= pips;
+      int takeprofit2= pips;
+      int takeprofit1= (int)(pips/2);
       int order0=OrderSend(
                     _Symbol,//currencyPair
                     OP_BUY,//buy
@@ -113,11 +113,11 @@ void trade(bool buy, int sl)
 
          Alert("Sell ",shares," shares of ", _Symbol);
          double x=Bid;
-         double y=shares*3/4;
-         double z=shares/4;
+         double y=shares*0.67;
+         double z=shares*0.33;
          int pipstostoploss=pips;
-         int takeprofit2= pips*2;
-         int takeprofit1= pips;
+         int takeprofit2= pips;
+         int takeprofit1= (int)(pips/2);
 
          int order0=OrderSend(
                        _Symbol,//currencyPair
@@ -163,6 +163,13 @@ void OnTick()
       total+=(MathAbs(Open[i]-Close[i]));
      }
    double average=(int)((total/numOfCandles)/_Point);
+   //average volume
+   double totalVol=0;
+   for(int i=0; i<50; i++)
+     {
+      totalVol+=Volume[i];
+     }
+   double averageVol=(totalVol/(50));
 //delete all trades with second candle doji
    bool doji=false;
    bool hammer =false;
@@ -197,10 +204,21 @@ void OnTick()
       topratio=0;
       botratio=0;
      }
-   double dojiratio=1.5;
+   double dojiratio=1;
    if((botratio>=dojiratio)&&(topratio>=dojiratio)&&(botratio>=(dojiratio+2))&&(topratio>=(dojiratio+2)))
      {
       doji=true;
+      if((botratio/topratio)>=2)
+        {
+         doji=false;
+         hammer=true;
+        }
+      else
+         if((topratio/botratio)>=2)
+           {
+            doji=false;
+            star=true;
+           }
      }
    else
       if((botratio>=dojiratio)&&(botratio>=(dojiratio+2)))
@@ -223,7 +241,8 @@ void OnTick()
 //init variables
    double MFI=iMFI(_Symbol,_Period,14,0);
    int spread=SYMBOL_SPREAD;
-   double goldenNum=2;
+   double goldenNum=0.8;
+   double goldenMax=10;
    double goldenNum2=2.5;
    bool bull=false;
    bool bear=false;
@@ -239,14 +258,14 @@ void OnTick()
       traded=false;
      }
 //ignition : any bar [a certain number] times or more than average candle
-   if(height2>=(goldenNum*average))
+   if((height2>=(goldenNum*average))&&(height2<=(goldenMax*average)))
      {
       ignition=true;
       //bull
       bull=true;
       bear=false;
      }
-   if(height2<=(goldenNum*-1*average))
+   if((height2<=(goldenNum*-1*average))&&(height2>=(goldenMax*-1*average)))
      {
       ignition=true;
       bear=true;
@@ -255,7 +274,7 @@ void OnTick()
      }
 //correction : second bar is less than [a second certain number] times of ignition in op direction
 
-   if(bull && (height1<0) && (height1>=((-1)*height2/goldenNum2)))
+   if(bull && (height1<-2) && (height1>=((-1)*height2/goldenNum2)))
      {
       if(!doji && !star)
         {
@@ -263,7 +282,7 @@ void OnTick()
         }
      }
    else
-      if((bear &&(height1>0) && (height1<=(height2/goldenNum2))))
+      if((bear &&(height1>2) && (height1<=(height2/goldenNum2))))
         {
          if(!doji && !hammer)
            {
@@ -299,65 +318,54 @@ void OnTick()
      }
 
 //make trade if all true
+//only trade with higher than average relative volume
+bool withVol=false;
+withVol=((Volume[1]/averageVol)>=1);
 //trading format "trade(bool buy,int pipstostoploss));"
-   if(ignition && correction && confirmation && bull && !traded)
+
+   if(ignition && correction && confirmation && bull && !traded && withVol)
      {
-<<<<<<< HEAD
-     //buy after confirmation
-=======
->>>>>>> automatedstoplosses
+      //buy after confirmation
       stoploss=height2+(2*spread);
-      takeprofit=stoploss;
+      takeprofit=stoploss/2;
       trade(true,stoploss);
       traded=true;
      }
    else
-      if(ignition && correction && confirmation && bear && !traded)
+      if(ignition && correction && confirmation && bear && !traded && withVol)
         {
-<<<<<<< HEAD
-        //sell after confirmation
-=======
->>>>>>> automatedstoplosses
+         //sell after confirmation
          stoploss=height2+(2*spread);
-         takeprofit=stoploss;
+         takeprofit=stoploss/2;
          trade(false,stoploss);
          traded=true;
         }
       else
-         if(!traded && ignition && bull && rejection)
+         if(!traded && ignition && bull && rejection && withVol)
            {
-<<<<<<< HEAD
-           //buy after rejection
-            stoploss=height2;
-=======
-            stoploss=(height2/2)+3*spread;
->>>>>>> automatedstoplosses
-            takeprofit=stoploss;
+            //buy after rejection
+            stoploss=height2+spread;
+            takeprofit=stoploss/2;
             trade(true,stoploss);
             traded=true;
            }
          else
-            if(!traded && ignition && bear && rejection)
+            if(!traded && ignition && bear && rejection && withVol)
               {
-<<<<<<< HEAD
-              //sell after rejection
-               stoploss=height2;
-=======
-               stoploss=(height2/2)
-                        +3*spread;
->>>>>>> automatedstoplosses
-               takeprofit=stoploss;
+               //sell after rejection
+               stoploss=height2+spread;
+               takeprofit=stoploss/2;
                trade(false,stoploss);
                traded=true;
               }
    Comment(
       "balance :  ",AccountBalance(),"\n",
-      "traded :  ",traded,"\n",
-      "spread :  ",spread,"\n",
-      "average candle:",average,"\n",
       "ignition : ",ignition,"\n",
       "correction : ",correction,"\n",
       "confirmation: ",confirmation,"\n",
+      "doji: ",doji,"\n",
+      "hammer: ",hammer,"\n",
+      "star: ",star,"\n",
       numOfTrades," trades "
    );
    height=Close[1];
@@ -376,7 +384,7 @@ void OnTick()
                //check if buy or sell
                if(OrderType()==OP_BUY)
                  {
-                  if((Bid>(OrderOpenPrice()+pips*_Point))&&(OrderStopLoss()<OrderOpenPrice()) && (OrderStopLoss()<Ask-pips*_Point))
+                  if((Bid>(OrderOpenPrice()+pips*_Point))&&(OrderStopLoss()<OrderOpenPrice()) && (OrderStopLoss()<(Ask-pips*_Point)))
                     {
                      bool evenbuy=OrderModify(OrderTicket(),OrderOpenPrice(),Ask-pips*_Point,OrderTakeProfit(),0);
                     }
@@ -384,9 +392,10 @@ void OnTick()
                else
                   if(OrderType()==OP_SELL)
                     {
-                     if((Ask<(OrderOpenPrice()-pips*_Point))&&(OrderStopLoss()>OrderOpenPrice()) && (OrderStopLoss()>Bid+pips*_Point))
+                     if((Ask<(OrderOpenPrice()-pips*_Point))&&(OrderStopLoss()>OrderOpenPrice()) && (OrderStopLoss()>(Bid+pips*_Point)))
                        {
                         bool evensell=OrderModify(OrderTicket(),OrderOpenPrice(),Bid+pips*_Point,OrderTakeProfit(),0);
+
                        }
                     }
 
